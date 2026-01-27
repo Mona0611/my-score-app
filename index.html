@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>阅卷合分助手</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#4a1dda">
     <style>
         :root {
             --primary: #4a1dda;
@@ -36,29 +34,22 @@
 
         .content { padding: 12px; flex: 1; max-width: 600px; margin: 0 auto; width: 100%; }
 
-        .exam-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 18px; background: white; border-radius: 12px; margin-bottom: 12px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid var(--primary);
-        }
-
-        /* 黑色算式及结果区域 */
+        /* 黑色算式区域 */
         .display-card {
             background: #1e1e1e; color: #00ff9d; border-radius: 16px; 
             padding: 20px; min-height: 130px; margin-bottom: 15px;
             display: flex; flex-direction: column; justify-content: center;
             box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
-            transition: all 0.3s;
         }
         .paper-info { color: #888; font-size: 13px; margin-bottom: 8px; display: flex; justify-content: space-between; }
         .formula-text { 
-            font-family: 'Consolas', monospace; 
-            font-size: 26px; word-break: break-all; line-height: 1.2; 
-            text-align: right; min-height: 32px;
+            font-family: 'Consolas', monospace; font-size: 26px; word-break: break-all; 
+            line-height: 1.2; text-align: right; min-height: 32px;
         }
         .current-input { color: #fff; border-bottom: 2px solid #fff; min-width: 8px; display: inline-block; }
-        .result-highlight { color: #ffca28; font-size: 36px; font-weight: bold; }
+        .result-highlight { color: #ffca28; font-size: 38px; font-weight: bold; }
 
+        /* 键盘 */
         .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
         .key {
             background: var(--key-bg); height: 62px; border-radius: 12px;
@@ -70,22 +61,40 @@
         .key.action { background: #dfe6e9; color: var(--text); }
         .key.enter { background: var(--primary); color: white; box-shadow: 0 3px 0 #341299; font-size: 20px; }
 
+        /* 完成按钮状态控制 */
         .save-btn {
             background: var(--success); color: white; border: none;
             width: 100%; padding: 18px; border-radius: 12px;
             font-size: 18px; font-weight: bold; margin-bottom: 15px;
-            box-shadow: 0 4px 0 #008f71;
+            box-shadow: 0 4px 0 #008f71; transition: 0.3s;
         }
         .save-btn:active { transform: translateY(3px); box-shadow: none; }
+        .save-btn:disabled {
+            background: #ccc !important; color: #f0f0f0 !important;
+            box-shadow: none !important; transform: none !important;
+            opacity: 0.7;
+        }
 
+        /* 表格与其它 */
         .table-container { overflow-x: auto; background: white; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; font-size: 14px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: center; min-width: 50px; }
         th { background: #f8f9fa; color: #888; }
-
         .btn { border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-danger { background: var(--danger); color: white; }
         .btn-sub { background: #eee; color: #666; }
+
+        #toast {
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.85); color: white; padding: 10px 24px;
+            border-radius: 30px; font-size: 14px; display: none; z-index: 2000;
+        }
+
+        .exam-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 18px; background: white; border-radius: 12px; margin-bottom: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid var(--primary);
+        }
 
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -94,16 +103,11 @@
         }
         .modal { background: white; border-radius: 20px; padding: 25px; width: 100%; max-width: 400px; }
         .show { display: flex; }
-
-        #toast {
-            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.85); color: white; padding: 10px 24px;
-            border-radius: 30px; font-size: 14px; display: none; z-index: 2000;
-        }
     </style>
 </head>
 <body>
 
+    <!-- 首页列表 -->
     <div id="view-home" class="view active">
         <header><h1>阅卷合分助手</h1></header>
         <div class="content">
@@ -112,6 +116,7 @@
         </div>
     </div>
 
+    <!-- 详情评分页 -->
     <div id="view-detail" class="view">
         <header>
             <button class="btn btn-sub" onclick="showView('view-home')">返回</button>
@@ -119,7 +124,7 @@
             <button class="btn btn-danger" onclick="openModal('modal-clear')">清空</button>
         </header>
         <div class="content">
-            <div class="display-card" id="main-display">
+            <div class="display-card">
                 <div class="paper-info">
                     <span id="cur-no-display">准备阅第 01 份</span>
                     <span id="mode-tag">加分模式</span>
@@ -143,11 +148,11 @@
                 <div class="key action" onclick="pressKey('.')">.</div>
                 <div class="key" onclick="pressKey('0')">0</div>
                 <div class="key action" onclick="pressKey('del')">⌫</div>
-                <div class="key action" onclick="resetCurrentPaper()">C</div>
+                <div class="key action" onclick="handleClearKey()">C</div>
                 <div class="key enter" style="grid-column: span 2" onclick="confirmStep()">ENTER</div>
             </div>
 
-            <button class="save-btn" onclick="saveTotal()">完成并存入表格</button>
+            <button id="save-main-btn" class="save-btn" onclick="saveTotal()">完成并存入表格</button>
 
             <div class="table-container">
                 <table id="res-table"></table>
@@ -156,27 +161,27 @@
         </div>
     </div>
 
-    <!-- 模态框保持不变 -->
+    <!-- 模态框：新建 -->
     <div id="modal-create" class="modal-overlay">
         <div class="modal">
             <h3 style="margin-top:0">新建试卷</h3>
-            <label>试卷名称</label>
-            <input type="text" id="new-name" placeholder="如：七年级数学月考" style="width:100%; padding:12px; margin-top:5px; border:1px solid #ddd; border-radius:8px;">
-            <div style="display:flex; gap:10px; margin-top:15px;">
+            <input type="text" id="new-name" placeholder="输入名称" style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ddd; border-radius:8px;">
+            <div style="display:flex; gap:10px;">
                 <button class="btn btn-sub" id="mode-add" onclick="setMode('add')" style="flex:1; border:2px solid var(--primary)">加分制</button>
                 <button class="btn btn-sub" id="mode-sub" onclick="setMode('sub')" style="flex:1;">减分制</button>
             </div>
             <div id="init-score-wrap" style="display:none; margin-top:15px;">
                 <label>起扣总分</label>
-                <input type="number" id="init-score" value="100" style="width:100%; padding:12px; margin-top:5px; border:1px solid #ddd; border-radius:8px;">
+                <input type="number" id="init-score" value="100" style="width:100%; padding:10px; margin-top:5px; border:1px solid #ddd; border-radius:8px;">
             </div>
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button class="btn btn-sub" style="flex:1" onclick="closeModal('modal-create')">取消</button>
-                <button class="btn btn-danger" style="flex:1; background:var(--primary)" onclick="createExam()">确认</button>
+                <button class="btn btn-main" style="flex:1; background:var(--primary); color:white;" onclick="createExam()">确认</button>
             </div>
         </div>
     </div>
 
+    <!-- 模态框：清空 -->
     <div id="modal-clear" class="modal-overlay">
         <div class="modal">
             <h3>确定清空成绩？</h3>
@@ -187,26 +192,15 @@
         </div>
     </div>
 
-    <div id="modal-delete" class="modal-overlay">
-        <div class="modal">
-            <h3>确定删除该试卷项目？</h3>
-            <div style="display:flex; gap:10px; margin-top:20px;">
-                <button class="btn btn-sub" style="flex:1" onclick="closeModal('modal-delete')">取消</button>
-                <button class="btn btn-danger" style="flex:1" onclick="deleteExam()">确认删除</button>
-            </div>
-        </div>
-    </div>
-
     <div id="toast"></div>
 
 <script>
-    let db = JSON.parse(localStorage.getItem('marking_v5')) || [];
+    let db = JSON.parse(localStorage.getItem('marking_v6')) || [];
     let curIdx = -1;
     let tempSteps = [];
     let typingNum = "";
     let config = { mode: 'add' };
-    let deleteTargetIdx = -1;
-    let isShowingResult = false; // 是否正在显示上一份的最终得分
+    let isShowingResult = false; // 锁：标记当前是否显示最终结果
 
     function showView(id) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -216,19 +210,18 @@
 
     function openExam(idx) {
         curIdx = idx;
-        isShowingResult = false;
-        resetCurrentPaper();
+        resetToNewPaper();
         document.getElementById('detail-title').innerText = db[idx].name;
         document.getElementById('mode-tag').innerText = db[idx].mode === 'add' ? '加分制' : '减分制';
         showView('view-detail');
         renderTable();
     }
 
+    // --- 核心逻辑 ---
     function pressKey(k) {
-        // 如果当前显示的是最终分数，按下任意键自动开启新一份的录入
+        // 如果当前是锁定状态（显示结果），按任何数字键都视为开启新的一份
         if (isShowingResult) {
-            isShowingResult = false;
-            resetCurrentPaper();
+            resetToNewPaper();
         }
 
         if (k === 'del') {
@@ -238,27 +231,31 @@
         } else {
             typingNum += k;
         }
-        updateFormula();
+        updateFormulaUI();
+    }
+
+    function handleClearKey() {
+        resetToNewPaper();
     }
 
     function confirmStep() {
+        if (isShowingResult) return; 
         if (typingNum === "") return;
         tempSteps.push(parseFloat(typingNum));
         typingNum = "";
-        updateFormula();
+        updateFormulaUI();
     }
 
-    function updateFormula() {
+    function updateFormulaUI() {
         const exam = db[curIdx];
         const historyEl = document.getElementById('history-steps');
         const typingEl = document.getElementById('typing-box');
+        const saveBtn = document.getElementById('save-main-btn');
         
         let historyStr = "";
         const symbol = exam.mode === 'add' ? ' + ' : ' - ';
         
-        if (exam.mode === 'sub') {
-            historyStr = exam.base;
-        }
+        if (exam.mode === 'sub') historyStr = exam.base;
 
         tempSteps.forEach((num, i) => {
             if (exam.mode === 'add' && i === 0) historyStr += num;
@@ -275,69 +272,87 @@
         historyEl.innerHTML = historyStr;
         typingEl.innerText = prefix + typingNum;
         
+        // 更新序号提示
         const nextNo = (exam.results.length + 1).toString().padStart(2, '0');
         document.getElementById('cur-no-display').innerText = `正在阅第 ${nextNo} 份`;
+
+        // 只要有输入，就激活按钮
+        if (!isShowingResult) {
+            saveBtn.disabled = false;
+            saveBtn.innerText = "完成并存入表格";
+        }
     }
 
-    function resetCurrentPaper() {
+    function resetToNewPaper() {
         tempSteps = [];
         typingNum = "";
         isShowingResult = false;
-        updateFormula();
+        const saveBtn = document.getElementById('save-main-btn');
+        saveBtn.disabled = false;
+        saveBtn.innerText = "完成并存入表格";
+        updateFormulaUI();
     }
 
     function saveTotal() {
+        // 如果已经在显示结果，禁止二次保存
+        if (isShowingResult) return;
+
+        // 如果最后一位还在typing，先自动confirm它
         if (typingNum !== "") {
             tempSteps.push(parseFloat(typingNum));
             typingNum = "";
         }
         
         const exam = db[curIdx];
-        if (tempSteps.length === 0 && exam.mode === 'add') return showToast("请输入分数");
+        // 防止空数据存入
+        if (tempSteps.length === 0 && exam.mode === 'add') return showToast("还没有输入分数");
 
         let total = exam.mode === 'add' ? 0 : exam.base;
         tempSteps.forEach(n => exam.mode === 'add' ? (total += n) : (total -= n));
         
-        // 记录结果
+        // 存入数据库
         exam.results.push(total);
         save();
         
-        // UI 反馈：在黑色区域显示最终分数
+        // --- 进入锁定状态（结果展示模式） ---
+        isShowingResult = true;
+        
+        // 1. UI 展示最终分
         const historyEl = document.getElementById('history-steps');
         const typingEl = document.getElementById('typing-box');
         historyEl.innerHTML = `<span style="font-size:16px; color:#aaa;">第 ${(exam.results.length).toString().padStart(2, '0')} 份最终得分</span>`;
         typingEl.innerHTML = `<div class="result-highlight">${total}</div>`;
         
-        isShowingResult = true; 
+        // 2. 按钮锁定并变灰
+        const saveBtn = document.getElementById('save-main-btn');
+        saveBtn.disabled = true;
+        saveBtn.innerText = "已存入，请开始下一份";
+        
         renderTable();
-        showToast("已存入表格");
+        showToast("录入成功");
     }
 
     function copyOnlyScores() {
         const exam = db[curIdx];
         if (!exam.results.length) return showToast("暂无数据可复制");
-        
-        // 只获取成绩，用空格或换行分隔
-        const textToCopy = exam.results.join('\t'); // 使用 Tab 分隔，方便粘贴到 Excel
-        
+        const textToCopy = exam.results.join('\t'); 
         const el = document.createElement('textarea');
         el.value = textToCopy;
         document.body.appendChild(el);
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        
-        showToast("纯分数已复制 (Tab分隔)");
+        showToast("纯分数已复制 (可粘贴到Excel)");
     }
 
-    // --- 其他基础逻辑 ---
+    // --- 基础维护 ---
     function openModal(id) { document.getElementById(id).classList.add('show'); }
     function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
     function setMode(m) {
         config.mode = m;
-        document.getElementById('mode-add').style.border = m === 'add' ? '2px solid var(--primary)' : '1px solid #ddd';
-        document.getElementById('mode-sub').style.border = m === 'sub' ? '2px solid var(--primary)' : '1px solid #ddd';
+        document.getElementById('mode-add').style.border = m === 'add' ? '2px solid var(--primary)' : '1px solid #eee';
+        document.getElementById('mode-sub').style.border = m === 'sub' ? '2px solid var(--primary)' : '1px solid #eee';
         document.getElementById('init-score-wrap').style.display = m === 'sub' ? 'block' : 'none';
     }
 
@@ -351,24 +366,11 @@
         renderHome();
     }
 
-    function prepDelete(idx, e) {
-        e.stopPropagation();
-        deleteTargetIdx = idx;
-        openModal('modal-delete');
-    }
-
-    function deleteExam() {
-        db.splice(deleteTargetIdx, 1);
-        save();
-        closeModal('modal-delete');
-        renderHome();
-    }
-
     function clearAllData() {
         db[curIdx].results = [];
         save();
         renderTable();
-        resetCurrentPaper();
+        resetToNewPaper();
         closeModal('modal-clear');
     }
 
@@ -380,16 +382,16 @@
                     <strong>${item.name}</strong><br>
                     <small style="color:#999">${item.mode=='add'?'加分':'减分'} | 已阅 ${item.results.length} 份</small>
                 </div>
-                <button class="btn btn-danger" onclick="prepDelete(${i}, event)">删除</button>
+                <button class="btn btn-danger" onclick="event.stopPropagation(); if(confirm('删除此试卷及成绩？')) {db.splice(${i},1);save();renderHome();}">删除</button>
             </div>
-        `).join('') || '<p style="text-align:center; color:#999; margin-top:50px;">点击上方按钮新建项目</p>';
+        `).join('') || '<p style="text-align:center; color:#999; margin-top:50px;">点击上方按钮新建</p>';
     }
 
     function renderTable() {
         const exam = db[curIdx];
         const table = document.getElementById('res-table');
         if(!exam.results.length) {
-            table.innerHTML = "<tr><td style='padding:20px; color:#ccc'>暂无成绩</td></tr>";
+            table.innerHTML = "<tr><td style='padding:20px; color:#ccc'>暂无记录</td></tr>";
             return;
         }
         let h1 = "<tr><th>序号</th>", h2 = "<tr><th>成绩</th>";
@@ -400,12 +402,12 @@
         table.innerHTML = h1 + "</tr>" + h2 + "</tr>";
     }
 
-    function save() { localStorage.setItem('marking_v5', JSON.stringify(db)); }
+    function save() { localStorage.setItem('marking_v6', JSON.stringify(db)); }
     
     function showToast(msg) {
         const t = document.getElementById('toast');
         t.innerText = msg; t.style.display = 'block';
-        setTimeout(() => t.style.display = 'none', 2000);
+        setTimeout(() => t.style.display = 'none', 1500);
     }
 
     renderHome();
