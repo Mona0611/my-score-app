@@ -140,17 +140,17 @@
                 <div class="key" onclick="pressKey('4')">4</div>
                 <div class="key" onclick="pressKey('5')">5</div>
                 <div class="key" onclick="pressKey('6')">6</div>
-                <div class="key" onclick="pressKey('7')">7</di
+                <div class="key" onclick="pressKey('7')">7</div>
                 <div class="key" onclick="pressKey('8')">8</div>
                 <div class="key" onclick="pressKey('9')">9</div>
                 <div class="key action" onclick="pressKey('.')">.</div>
                 <div class="key" onclick="pressKey('0')">0</div>
                 <div class="key action" onclick="pressKey('del')">⌫</div>
                 <div class="key action" onclick="resetToNewPaper()">C</div>
-                <div class="key enter" style="grid-column: span 2" onclick="confirmStep()">-</div>
+                <div class="key enter" style="grid-column: span 2" onclick="confirmStep()">ENTER</div>
             </div>
 
-            <button id="save-main-btn" class="save-btn" onclick="saveTotal()">=</button>
+            <button id="save-main-btn" class="save-btn" onclick="saveTotal()">完成并存入表格</button>
 
             <div class="table-container">
                 <table id="res-table"></table>
@@ -252,7 +252,7 @@
         typingEl.innerText = prefix + typingNum;
         document.getElementById('cur-no-display').innerText = `第 ${(exam.results.length + 1).toString().padStart(2, '0')} 份`;
         document.getElementById('save-main-btn').disabled = false;
-        document.getElementById('save-main-btn').innerText = "=";
+        document.getElementById('save-main-btn').innerText = "完成并存入表格";
     }
 
     // --- 固定等级算法 ---
